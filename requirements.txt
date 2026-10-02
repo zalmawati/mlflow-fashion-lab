@@ -1,0 +1,5 @@
+mlflow>=3.0,<4
+scikit-learn
+matplotlib
+numpy
+requests

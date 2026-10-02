@@ -1,0 +1,15 @@
+.labvenv/
+models/
+data/
+.env
+outputs/
+mlruns/
+models/ 
+outputs/
+# mlartifacts/
+mlflow.db
+__pycache__/
+*.pyc
+*.png
+src/train_mlflow.py
+src/mlflow_hello.py

@@ -1,0 +1,39 @@
+services:
+  mlflow:  #the tracking server + ui
+    build: .
+    image: fashion-mlflow-lab
+    command: >
+      mlflow server host 0.0.0.0 --port 5000
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --artifacts-destination /mlflow/artifacts
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow-data:/mlflow #keeps your runs even if the container is removed 
+    
+  trainer:  # runs training, sends results to server
+    image: fashion-mlflow-lab
+    profiles: ["train"]
+    depends_on: [mlflow]
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      SERVE_URL: http://serve:5000/invocations
+    volumes:
+      - ./data:/app/data # dataset download once, reused
+
+  serve:
+    image: fashion-mlflow-lab
+    profiles: ["serve"]
+    depends_on: [mlflow]
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    command: >
+      mlflow models serve -m ${MODEL_URI:-models:/fashion-cnn/1}
+      --host 0.0.0.0 --port 5001 --env-manager local
+    ports:
+      - "5001:5000"
+
+volumes:
+  mlflow-data:
+    
+    
