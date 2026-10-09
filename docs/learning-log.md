@@ -84,3 +84,10 @@ Environment: remote linux server (no screen), Python venv `.labvenv`, Mlflow 3.1
 ---
 
 ## Milestone 3c: MLflow on the real model
+Run	What changed	Val accuracy (approx.)	Test accuracy	Verdict
+lr-low	lr 0.0001	0.865	0.86	Worst: learns too slowly
+lr-high	lr 0.01	0.875	0.88	Learns fast, then stalls
+dropout-50	dropout 0.5	0.90	0.90	Slightly slower learner
+baseline	none	0.905	0.90	Solid reference
+dropout-0	dropout 0.0	0.91	0.91	Slightly better in a short run
+long (x2)	12 epochs	0.92	0.92	Best overall
