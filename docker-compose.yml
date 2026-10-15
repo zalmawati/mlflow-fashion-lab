@@ -1,39 +1,41 @@
 services:
-  mlflow:  #the tracking server + ui
+
+  # 1) The MLflow server: stores runs, metrics, models and the registry
+  mlflow:
     build: .
     image: fashion-mlflow-lab
     command: >
-      mlflow server host 0.0.0.0 --port 5000
+      mlflow server
+      --host 0.0.0.0 --port 5000
       --backend-store-uri sqlite:////mlflow/mlflow.db
       --artifacts-destination /mlflow/artifacts
+      --allowed-hosts "localhost:5000,127.0.0.1:5000,mlflow:5000"
+      --cors-allowed-origins "http://localhost:5000,http://127.0.0.1:5000"
     ports:
-      - "5000:5000"
+      # 127.0.0.1 = reachable only from this machine (the server). Use port forwarding to view it.
+      - "127.0.0.1:5000:5000"
     volumes:
-      - mlflow-data:/mlflow #keeps your runs even if the container is removed 
-    
-  trainer:  # runs training, sends results to server
-    image: fashion-mlflow-lab
-    profiles: ["train"]
-    depends_on: [mlflow]
-    environment:
-      MLFLOW_TRACKING_URI: http://mlflow:5000
-      SERVE_URL: http://serve:5000/invocations
-    volumes:
-      - ./data:/app/data # dataset download once, reused
+      - mlflow-data:/mlflow          # database + artifacts survive container restarts
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
-  serve:
+  # 2) The trainer: a short-lived container that trains and reports to the server
+  trainer:
+    build: .
     image: fashion-mlflow-lab
-    profiles: ["serve"]
-    depends_on: [mlflow]
+    profiles: ["train"]              # only runs when asked: docker compose run --rm trainer ...
+    depends_on:
+      mlflow:
+        condition: service_healthy
     environment:
-      MLFLOW_TRACKING_URI: http://mlflow:5000
-    command: >
-      mlflow models serve -m ${MODEL_URI:-models:/fashion-cnn/1}
-      --host 0.0.0.0 --port 5001 --env-manager local
-    ports:
-      - "5001:5000"
+      MLFLOW_TRACKING_URI: http://mlflow:5000   # "mlflow" = the service name above
+    volumes:
+      - fashion-data:/app/data       # dataset downloaded once, then reused
 
 volumes:
   mlflow-data:
-    
-    
+  fashion-data:
